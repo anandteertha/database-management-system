@@ -180,9 +180,25 @@ CREATE TABLE IF NOT EXISTS IngredientBatch (
     supplier_id INT NOT NULL,
     generic_batch_id INT UNIQUE,
     on_hand_quantity_oz DOUBLE NOT NULL CHECK (on_hand_quantity_oz >= 0),
-    per_unit_cost DOUBLE NOT NULL CHECK (per_unit_cost >= 0,
+    per_unit_cost DOUBLE NOT NULL CHECK (per_unit_cost >= 0),
     expiration_date DATE NOT NULL,
     formulation_id INT,
+
+    CONSTRAINT chk_ingredient_type
+        CHECK (
+            (atomic_ingredient_name IS NOT NULL AND composite_ingredient_name IS NULL) OR
+            (atomic_ingredient_name IS NULL AND composite_ingredient_name IS NOT NULL)
+        ),
+
+    FOREIGN KEY (atomic_ingredient_name)
+        REFERENCES AtomicIngredient(name)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    FOREIGN KEY (composite_ingredient_name)
+        REFERENCES CompositeIngredient(name)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
 
     FOREIGN KEY (generic_batch_id)
         REFERENCES Batch(id)
@@ -261,3 +277,55 @@ CREATE TABLE IF NOT EXISTS IngredientIncompatibility (
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
+
+-- changes the end of the procudure delimiter to $$ instead of ;
+DELIMITER $$
+-- 1. TRIGGER: Compute Ingredient Lot Number & Enforce 90-Day Intake Rule
+-- This trigger runs BEFORE an ingredient batch is inserted.
+CREATE TRIGGER trg_ingredient_batch_pre_insert
+BEFORE INSERT ON IngredientBatch
+FOR EACH ROW
+BEGIN
+    DECLARE v_ingredient_name VARCHAR(255);
+    
+    -- Determine the ingredient name from the exclusive arc columns
+    IF NEW.atomic_ingredient_name IS NOT NULL THEN
+        SET v_ingredient_name = NEW.atomic_ingredient_name;
+    ELSEIF NEW.composite_ingredient_name IS NOT NULL THEN
+        SET v_ingredient_name = NEW.composite_ingredient_name;
+    END IF;
+
+    -- Compute Lot Number: <ingredientId>-<supplierId>-<batchId> [cite: 166]
+    SET NEW.lot_number = CONCAT(v_ingredient_name, '-', NEW.supplier_id, '-', NEW.generic_batch_id);
+    
+    -- Enforce 90-day expiration check [cite: 71, 105]
+    IF NEW.expiration_date < DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: Ingredient intake rejected. Expiration date must be at least 90 days from the intake date.';
+    END IF;
+
+END$$
+
+
+-- 2. TRIGGER: Prevent Expired Consumption
+-- This trigger runs BEFORE an ingredient is consumed by a product batch.
+CREATE TRIGGER trg_prevent_expired_consumption
+BEFORE INSERT ON IngredientConsumption
+FOR EACH ROW
+BEGIN
+    DECLARE expiration_date_check DATE;
+    
+    -- Look up the expiration date from the IngredientBatch table
+    SELECT expiration_date INTO expiration_date_check
+    FROM IngredientBatch
+    WHERE lot_number = NEW.ingredient_lot_number;
+
+    -- Reject if the current date is past the expiration date [cite: 168]
+    IF expiration_date_check IS NOT NULL AND CURDATE() > expiration_date_check THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: Consumption rejected because the ingredient lot has expired.';
+    END IF;
+    
+END$$
+
+DELIMITER ;
