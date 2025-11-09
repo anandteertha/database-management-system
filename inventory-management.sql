@@ -20,10 +20,12 @@ CREATE TABLE IF NOT EXISTS Manufacturer (
 );
 
 CREATE TABLE IF NOT EXISTS AtomicIngredient (
+    -- id INT AUTO_INCREMENT PRIMARY KEY (shares with CompositeIngredient so may need to merge)
     name VARCHAR(255) PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS CompositeIngredient (
+    -- id INT AUTO_INCREMENT PRIMARY KEY (shares with AtomicIngredient so may need to merge)
     name VARCHAR(255) PRIMARY KEY,
     atomic_parent VARCHAR(255) NOT NULL,
     FOREIGN KEY (atomic_parent)
