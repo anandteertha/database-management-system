@@ -1,4 +1,13 @@
 CREATE TABLE IF NOT EXISTS
+    UserDetails (
+        id VARCHAR(255) PRIMARY KEY,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255),
+        address VARCHAR(255),
+        role_code VARCHAR(15) ENUM('MANUFACTURER', 'SUPPLIER', 'VIEWER') NOT NULL
+    );
+
+CREATE TABLE IF NOT EXISTS
     Category (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255)
@@ -10,162 +19,77 @@ CREATE TABLE IF NOT EXISTS
         name VARCHAR(255),
         number VARCHAR(255),
         category_id INT,
+        standard_batch_units INT,
         UNIQUE (name, number),
-        FOREIGN KEY (category_id) REFERENCES Category (ID) ON DELETE CASCADE ON UPDATE CASCADE
+        FOREIGN KEY (category_id) REFERENCES Category (id) ON DELETE CASCADE ON UPDATE CASCADE
     );
 
 CREATE TABLE IF NOT EXISTS
-    Manufacturer (name VARCHAR(255) PRIMARY KEY);
-
-CREATE TABLE IF NOT EXISTS
-    AtomicIngredient (
-        -- id INT AUTO_INCREMENT PRIMARY KEY (shares with CompositeIngredient so may need to merge)
-        name VARCHAR(255) PRIMARY KEY
-    );
-
-CREATE TABLE IF NOT EXISTS
-    CompositeIngredient (
-        -- id INT AUTO_INCREMENT PRIMARY KEY (shares with AtomicIngredient so may need to merge)
-        name VARCHAR(255) PRIMARY KEY,
-        atomic_parent VARCHAR(255) NOT NULL,
-        FOREIGN KEY (atomic_parent) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE
-    );
-
-CREATE TABLE IF NOT EXISTS
-    Supplier (
+    Ingredient (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255),
-        address VARCHAR(255)
+        name VARCHAR(255) UNIQUE,
+        type VARCHAR(10) ENUM('ATOMIC', 'COMPOUND') NOT NULL
     );
 
 CREATE TABLE IF NOT EXISTS
-    Formulation (
+    IngredientFormulation (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        ingredient_id INT NOT NULL,
+        supplier_id INT NOT NULL,
+        version_number VARCHAR(255),
+        validity_start_date DATE,
+        validity_end_date DATE,
+        unit_price DOUBLE, -- this is price per pack
         pack_size INT CHECK (pack_size > 0),
-        unit_price DOUBLE,
-        validity_date DATE,
-        version_number VARCHAR
+        UNIQUE (ingredient_id, supplier_id),
+        FOREIGN KEY (ingredient_id) REFERENCES Ingredient (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        FOREIGN KEY (supplier_id) REFERENCES UserDetails (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     );
 
 CREATE TABLE IF NOT EXISTS
-    Batch (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        size INT CHECK (size > 0),
-        lot_number VARCHAR
+    FormulationMaterial (
+        formulation_id INT NOT NULL,
+        ingredient_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+        PRIMARY KEY (formulation_id, ingredient_id),
+        FOREIGN KEY (formulation_id) REFERENCES IngredientFormulation (id) ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY (ingredient_id) REFERENCES Ingredient (id) ON DELETE CASCADE ON UPDATE CASCADE
     );
 
 CREATE TABLE IF NOT EXISTS
-    AtomicIngredientSupplier (
-        ingredient_name VARCHAR(255),
-        supplier_id INT,
-        quantity INT,
-        formulation_id INT,
-        batch_id INT,
-        PRIMARY KEY (ingredient_name, supplier_id),
-        FOREIGN KEY (ingredient_name) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (supplier_id) REFERENCES Supplier (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (formulation_id) REFERENCES Formulation (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (batch_id) REFERENCES Batch (id) ON DELETE RESTRICT ON UPDATE CASCADE
-    );
-
-CREATE TABLE IF NOT EXISTS
-    CompositeIngredientSupplier (
-        ingredient_name VARCHAR(255),
-        supplier_id INT,
-        quantity INT,
-        formulation_id INT,
-        batch_id INT,
-        PRIMARY KEY (ingredient_name, supplier_id),
-        FOREIGN KEY (ingredient_name) REFERENCES CompositeIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (supplier_id) REFERENCES Supplier (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (formulation_id) REFERENCES Formulation (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (batch_id) REFERENCES Batch (id) ON DELETE RESTRICT ON UPDATE CASCADE
-    );
-
-CREATE TABLE IF NOT EXISTS
-    ManufacturerProduct (
-        manufacturer_name VARCHAR(255),
-        product_id INT,
-        batch_id INT,
-        PRIMARY KEY (manufacturer_name, product_id),
-        FOREIGN KEY (manufacturer_name) REFERENCES Manufacturer (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (batch_id) REFERENCES Batch (id) ON DELETE RESTRICT ON UPDATE CASCADE
-    );
-
-CREATE TABLE IF NOT EXISTS
-    IngredientComposition (
-        compound_ingredient_name VARCHAR(255) NOT NULL,
-        material_name VARCHAR(255) NOT NULL,
-        quantity_ounces DOUBLE CHECK (quantity_ounces > 0),
-        PRIMARY KEY (compound_ingredient_name, material_name),
-        FOREIGN KEY (compound_ingredient_name) REFERENCES CompositeIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (material_name) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE
-    );
-
-CREATE TABLE IF NOT EXISTS
-    RecipePlan (
-        plan_id INT AUTO_INCREMENT PRIMARY KEY,
+    ProductBOM (
         product_id INT NOT NULL,
-        version_number INT NOT NULL,
-        creation_date DATE NOT NULL,
-        standard_batch_size INT CHECK (standard_batch_size > 0),
-        UNIQUE (product_id, version_number),
-        FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE CASCADE ON UPDATE CASCADE
-    );
-
-CREATE TABLE IF NOT EXISTS
-    RecipeIngredient (
-        plan_id INT NOT NULL,
-        ingredient_name VARCHAR(255) NOT NULL,
-        required_quantity_oz DOUBLE CHECK (required_quantity_oz > 0),
-        PRIMARY KEY (plan_id, ingredient_name),
-        FOREIGN KEY (plan_id) REFERENCES RecipePlan (plan_id) ON DELETE CASCADE ON UPDATE CASCADE,
-        FOREIGN KEY (ingredient_name) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE
+        ingredient_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+        PRIMARY KEY (product_id, ingredient_id),
+        FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY (ingredient_id) REFERENCES Ingredient (id) ON DELETE CASCADE ON UPDATE CASCADE
     );
 
 CREATE TABLE IF NOT EXISTS
     IngredientBatch (
-        lot_number VARCHAR PRIMARY KEY,
-        ingredient_name VARCHAR(255) NOT NULL,
-        supplier_id INT NOT NULL,
-        generic_batch_id INT UNIQUE,
-        on_hand_quantity_oz DOUBLE NOT NULL CHECK (on_hand_quantity_oz >= 0),
+        lot_number VARCHAR(255) PRIMARY KEY,
+        ingredient_id INT NOT NULL -- should be checked with a trigger if it matches or not!,
+        supplier_id INT NOT NULL -- should be checked with a trigger if it matches or not!,
+        batch_id INT NOT NULL, -- should be filled with a trigger!
+        quantity INT NOT NULL CHECK (quantity >= 0),
         per_unit_cost DOUBLE NOT NULL CHECK (per_unit_cost >= 0),
         expiration_date DATE NOT NULL,
-        formulation_id INT,
-        CONSTRAINT chk_ingredient_type CHECK (
-            (
-                atomic_ingredient_name IS NOT NULL
-                AND composite_ingredient_name IS NULL
-            )
-            OR (
-                atomic_ingredient_name IS NULL
-                AND composite_ingredient_name IS NOT NULL
-            )
-        ),
-        FOREIGN KEY (atomic_ingredient_name) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (composite_ingredient_name) REFERENCES CompositeIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (generic_batch_id) REFERENCES Batch (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (Supplier_id) REFERENCES Supplier (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (formulation_id) REFERENCES Formulation (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        FOREIGN KEY (supplier_id) REFERENCES UserDetails (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        FOREIGN KEY (ingredient_id) REFERENCES Ingredient (id) ON DELETE RESTRICT ON UPDATE CASCADE
     );
 
 CREATE TABLE IF NOT EXISTS
     ProductBatch (
-        lot_number VARCHAR PRIMARY KEY,
-        product_id INT NOT NULL,
-        manufacturer_name VARCHAR(255) NOT NULL,
-        generic_batch_id INT UNIQUE,
+        lot_number VARCHAR(255) PRIMARY KEY,
+        product_id INT NOT NULL -- should be checked with a trigger if it matches or not!,
+        manufacturer_id INT NOT NULL, -- should be filled with a trigger!
+        batch_id INT NOT NULL, -- should be filled with a trigger!
         produced_quantity INT NOT NULL CHECK (produced_quantity > 0),
         production_date DATE NOT NULL,
-        batch_total_cost DOUBLE NOT NULL,
-        unit_cost DOUBLE NOT NULL,
-        recipe_plan_id INT NOT NULL,
-        FOREIGN KEY (generic_batch_id) REFERENCES Batch (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        expiration_date DATE NOT NULL,
         FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (manufacturer_name) REFERENCES Manufacturer (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (recipe_plan_id) REFERENCES RecipePlan (plan_id) ON DELETE RESTRICT ON UPDATE CASCADE
+        FOREIGN KEY (manufacturer_id) REFERENCES UserDetails (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     );
 
 CREATE TABLE IF NOT EXISTS
@@ -180,11 +104,11 @@ CREATE TABLE IF NOT EXISTS
 
 CREATE TABLE IF NOT EXISTS
     IngredientIncompatibility (
-        ingredient_name_1 VARCHAR(255) NOT NULL,
-        ingredient_name_2 VARCHAR(255) NOT NULL,
-        PRIMARY KEY (ingredient_name_1, ingredient_name_2),
-        FOREIGN KEY (ingredient_name_1) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE,
-        FOREIGN KEY (ingredient_name_2) REFERENCES AtomicIngredient (name) ON DELETE RESTRICT ON UPDATE CASCADE
+        ingredient_a VARCHAR(255) NOT NULL,
+        ingredient_b VARCHAR(255) NOT NULL,
+        PRIMARY KEY (ingredient_a, ingredient_b),
+        FOREIGN KEY (ingredient_a) REFERENCES Ingredient (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        FOREIGN KEY (ingredient_b) REFERENCES Ingredient (id) ON DELETE RESTRICT ON UPDATE CASCADE
     );
 
 -- changes the end of the procudure delimiter to $$ instead of ;
