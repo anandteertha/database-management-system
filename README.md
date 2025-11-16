@@ -45,7 +45,7 @@ This project implements a **production-ready inventory management system** for a
 
 | Member Name                | Unity ID |
 | -------------------------- | -------- |
-| Pranav V                   | pvarney  |
+| Pranav V                   | pvareny  |
 | Christopher Dillon Michels | Cdmichel |
 | Anandteertha Ramesh Rao    | arrao6   |
 | Edward Feng                | sfeng9   |
