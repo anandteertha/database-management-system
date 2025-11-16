@@ -1,5 +1,5 @@
 -- =========================================================
--- schema.sql
+-- inventory management schema.sql
 -- Database schema for manufacturers, suppliers, products,
 -- formulations, inventory, batches, consumption and rules.
 -- =========================================================
@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS
         version_number VARCHAR(255),
         validity_start_date DATE,
         validity_end_date DATE,
-        unit_price DOUBLE, -- price per pack
+        unit_price DOUBLE,
+        -- price per pack
         pack_size INT CHECK (pack_size > 0),
         UNIQUE (ingredient_id, supplier_id, version_number),
         FOREIGN KEY (ingredient_id) REFERENCES Ingredient (id) ON DELETE RESTRICT ON UPDATE CASCADE,
