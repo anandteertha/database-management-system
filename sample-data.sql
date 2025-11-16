@@ -1,40 +1,47 @@
 SET
     FOREIGN_KEY_CHECKS = 0;
 
-INSERT INTO
-    Category (name)
-VALUES
-    ('Dinners'),
-    ('Sides');
+INSERT INTO UserDetails (id, first_name, last_name, role_code) VALUES
+('20', 'SupplierA', 'Inc.', 'SUPPLIER'),
+('21', 'SupplierB', 'Co.', 'SUPPLIER'),
+('MFG001', 'Manufacturer', 'One', 'MANUFACTURER'),
+('MFG002', 'Manufacturer', 'Two', 'MANUFACTURER');
 
 INSERT INTO
-    Product (number, name, category_id, standard_batch_units)
-VALUES
-    ('P-100', 'Steak Dinner', 1, 100),
-    ('P-101', 'Mac & Cheese', 2, 300);
+    Category (id, name) VALUES
+    (1, 'Dinners'),
+    (2, 'Sides');
+
+INSERT INTO Product (id, number, name, category_id, standard_batch_units) VALUES
+(100, 'P-100', 'Steak Dinner', 1, 100),
+(101, 'P-101', 'Mac & Cheese', 2, 300);
 
 INSERT INTO
-    Ingredient (name, type)
+    Ingredient (id, name, type)
 VALUES
-    ('Salt', 'ATOMIC'),
-    ('Pepper', 'ATOMIC'),
-    ('Sodium Phosphate', 'ATOMIC'),
-    ('Beef Steak', 'ATOMIC'),
-    ('Pasta', 'ATOMIC'),
-    ('Seasoning Blend', 'COMPOUND'),
-    ('Super Seasoning', 'COMPOUND');
+    (1001, 'Salt', 'ATOMIC'),
+    (1002, 'Pepper', 'ATOMIC'),
+    (1003, 'Sodium Phosphate', 'ATOMIC'),
+    (1004, 'Beef Steak', 'ATOMIC'),
+    (1005, 'Pasta', 'ATOMIC'),
+    (1006, 'Seasoning Blend', 'COMPOUND'),
+    (1007, 'Super Seasoning', 'COMPOUND');
 
--- Missing supplier ID, effective end date, 
-INSERT INTO
-    Formulation (
-        id,
-        pack_size,
-        unit_price,
-        validity_date,
-        version_number
-    )
+INSERT INTO FormulationMaterial (formulation_id, ingredient_id, quantity)
 VALUES
-    (1, 8, 20.0, '2025-01-01', '1');
+(1, 1001, 6), -- Salt (1001): 6 oz
+(1, 1002, 2);  -- Pepper (1002): 2 oz
+
+INSERT INTO ProductBOM (product_id, ingredient_id, quantity)
+VALUES
+(100, 1004, 6),   -- Beef Steak (1004): 6.0 oz
+(100, 1006, 0);   -- Seasoning Blend (1006): 0.2 oz (set to 0)
+
+INSERT INTO ProductBOM (product_id, ingredient_id, quantity)
+VALUES
+(101, 1005, 7),   -- Pasta (1005): 7.0 oz
+(101, 1001, 0),   -- Salt (1001): 0.5 oz (set to 0)
+(101, 1002, 2);   -- Pepper (1002): 2.0 oz
 
 -- Might be formulation materials, but should be ingredientID instead of material Name
 INSERT INTO
@@ -47,8 +54,6 @@ VALUES
     ('Seasoning Blend', 'Salt', 6.0),
     ('Seasoning Blend', 'Pepper', 2.0);
 
--- Missing USER
--- Not sure if this is needed
 INSERT INTO
     Batch (id, size, lot_number)
 VALUES
@@ -68,129 +73,20 @@ VALUES
     (20001, 100, '100-MFG001-B0901'),
     (20002, 300, '101-MFG002-B0101');
 
--- Has null because we separated the two types of ingredient
-INSERT INTO
-    IngredientBatch (
-        atomic_ingredient_name,
-        composite_ingredient_name,
-        supplier_id,
-        generic_batch_id,
-        on_hand_quantity_oz,
-        per_unit_cost,
-        expiration_date,
-        formulation_id -- Only applicable for composite ingredients with a specific formulation
-    )
-VALUES
-    (
-        'Salt',
-        NULL,
-        20,
-        10001,
-        1000.0,
-        0.1,
-        '2025-11-15',
-        NULL
-    ),
-    (
-        'Salt',
-        NULL,
-        21,
-        10002,
-        800.0,
-        0.08,
-        '2025-10-30',
-        NULL
-    ),
-    (
-        'Salt',
-        NULL,
-        20,
-        10003,
-        500.0,
-        0.1,
-        '2025-11-01',
-        NULL
-    ),
-    (
-        'Salt',
-        NULL,
-        20,
-        10004,
-        500.0,
-        0.1,
-        '2025-12-15',
-        NULL
-    ),
-    (
-        'Pepper',
-        NULL,
-        20,
-        10005,
-        1200.0,
-        0.3,
-        '2025-12-15',
-        NULL
-    ),
-    (
-        'Beef Steak',
-        NULL,
-        20,
-        10006,
-        3000.0,
-        0.5,
-        '2025-12-15',
-        NULL
-    ),
-    (
-        'Beef Steak',
-        NULL,
-        20,
-        10007,
-        600.0,
-        0.5,
-        '2025-12-20',
-        NULL
-    ),
-    (
-        'Pasta',
-        NULL,
-        20,
-        10008,
-        1000.0,
-        0.25,
-        '2025-09-28',
-        NULL
-    ),
-    (
-        'Pasta',
-        NULL,
-        20,
-        10009,
-        6300.0,
-        0.25,
-        '2025-12-31',
-        NULL
-    ),
-    (
-        NULL,
-        'Seasoning Blend',
-        20,
-        10010,
-        100.0,
-        2.5,
-        '2025-11-30',
-        1
-    ), -- Links to Formulation ID 1
-    (
-        NULL,
-        'Seasoning Blend',
-        20,
-        10011,
-        20.0,
-        2.5,
-        '2025-12-30',
-        1
-    );
+
+INSERT INTO IngredientBatch (lot_number, ingredient_id, supplier_id, batch_id, quantity, per_unit_cost, expiration_date) VALUES
+('Salt-20-10001', 1001, '20', 10001, 1000, 0.1, '2025-11-15'),
+('Salt-21-10002', 1001, '21', 10002, 800, 0.08, '2025-10-30'),
+('Salt-20-10003', 1001, '20', 10003, 500, 0.1, '2025-11-01'),
+('Salt-20-10004', 1001, '20', 10004, 500, 0.1, '2025-12-15'),
+('Pepper-20-10005', 1002, '20', 10005, 1200, 0.3, '2025-12-15'),
+('BeefSteak-20-10006', 1004, '20', 10006, 3000, 0.5, '2025-12-15'),
+('BeefSteak-20-10007', 1004, '20', 10007, 600, 0.5, '2025-12-20'),
+('Pasta-20-10008', 1005, '20', 10008, 1000, 0.25, '2025-09-28'),
+('Pasta-20-10009', 1005, '20', 10009, 6300, 0.25, '2025-12-31'),
+('SeasoningBlend-20-10010', 1006, '20', 10010, 100, 2.5, '2025-11-30'),
+('SeasoningBlend-20-10011', 1006, '20', 10011, 20, 2.5, '2025-12-30');
+
 
 -- Not in Sample Data
 INSERT INTO
@@ -205,8 +101,6 @@ VALUES
     (1, 100, 1, CURDATE(), 500), -- For 'Steak Dinner'
     (2, 101, 1, CURDATE(), 300);
 
--- For 'Mac & Cheese'
--- ProductBOM?
 INSERT INTO
     RecipeIngredient (plan_id, ingredient_name, required_quantity_oz)
 VALUES
@@ -217,44 +111,25 @@ VALUES
     (2, 'Pepper', 2.0);
 
 -- For Mac & Cheese (Product 101), ingredient_id 102
-INSERT INTO
-    ProductBatch (
-        lot_number,
-        product_id,
-        manufacturer_name,
-        generic_batch_id,
-        produced_quantity,
-        production_date,
-        expiration_date,
-        batch_total_cost,
-        unit_cost,
-        recipe_plan_id
-    )
-VALUES
-    (
-        '100-MFG001-B0901',
-        100,
-        'MFG001',
-        20001,
-        100,
-        '2025-09-26',
-        '2025-11-15',
-        0.0,
-        0.0,
-        1
-    ), -- For Steak Dinner
-    (
-        '101-MFG002-B0101',
-        101,
-        'MFG002',
-        20002,
-        300,
-        '2025-09-10',
-        '2025-10-30',
-        0.0,
-        0.0,
-        2
-    );
+INSERT INTO ProductBatch (lot_number, product_id, manufacturer_id, batch_id, produced_quantity, production_date, expiration_date) VALUES
+(
+    '100-MFG001-B0901',
+    100,
+    'MFG001',
+    20001,
+    100,
+    '2025-09-26',
+    '2025-11-15'
+),
+(
+    '101-MFG002-B0101',
+    101,
+    'MFG002',
+    20002,
+    300,
+    '2025-09-10',
+    '2025-10-30'
+);
 
 -- For Mac & Cheese
 -- Called ProductConsumption in sample data
@@ -277,12 +152,10 @@ VALUES
 
 -- Maps to sample 102-20-B0001
 -- Maybe rename into ConflictPairs
-INSERT INTO
-    IngredientIncompatibility (ingredient_name_1, ingredient_name_2)
+INSERT INTO IngredientIncompatibility (ingredient_a, ingredient_b)
 VALUES
-    ('Seasoning Blend', 'Sodium Phosphate'), -- From 201 and 104
-    ('Beef Steak', 'Sodium Phosphate');
-
+(1006, 1003), -- Seasoning Blend (1006) and Sodium Phosphate (1003)
+(1004, 1003); -- Beef Steak (1004) and Sodium Phosphate (1003)
 -- From 106 and 104
 SET
     FOREIGN_KEY_CHECKS = 1;
