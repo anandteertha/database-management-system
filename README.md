@@ -45,7 +45,7 @@ This project implements a **production-ready inventory management system** for a
 
 | Member Name                | Unity ID |
 | -------------------------- | -------- |
-| Pranav V                   | unity id |
+| Pranav V                   | pvarney  |
 | Christopher Dillon Michels | Cdmichel |
 | Anandteertha Ramesh Rao    | arrao6   |
 | Edward Feng                | sfeng9   |
@@ -229,18 +229,18 @@ python main.py
 
 ### Core Tables
 
-| Table | Description |
-|-------|-------------|
-| `UserDetails` | User accounts with role-based access |
-| `Product` | Product definitions with categories |
-| `Ingredient` | Atomic and compound ingredients |
-| `IngredientFormulation` | Supplier-specific ingredient formulations |
-| `ProductBOM` | Bill of materials for products |
-| `RecipePlan` | Versioned recipe plans |
-| `IngredientBatch` | Ingredient inventory batches |
-| `ProductBatch` | Production batches |
-| `IngredientConsumption` | Ingredient consumption tracking |
-| `IngredientIncompatibility` | Ingredient conflict rules |
+| Table                       | Description                               |
+| --------------------------- | ----------------------------------------- |
+| `UserDetails`               | User accounts with role-based access      |
+| `Product`                   | Product definitions with categories       |
+| `Ingredient`                | Atomic and compound ingredients           |
+| `IngredientFormulation`     | Supplier-specific ingredient formulations |
+| `ProductBOM`                | Bill of materials for products            |
+| `RecipePlan`                | Versioned recipe plans                    |
+| `IngredientBatch`           | Ingredient inventory batches              |
+| `ProductBatch`              | Production batches                        |
+| `IngredientConsumption`     | Ingredient consumption tracking           |
+| `IngredientIncompatibility` | Ingredient conflict rules                 |
 
 ### Stored Procedures
 
@@ -267,12 +267,12 @@ python main.py
 
 ### Test Users
 
-| Role | User ID | Name |
-|------|---------|------|
+| Role         | User ID  | Name             |
+| ------------ | -------- | ---------------- |
 | Manufacturer | `MFG001` | Manufacturer One |
 | Manufacturer | `MFG002` | Manufacturer Two |
-| Supplier | `20` | SupplierA Inc. |
-| Supplier | `21` | SupplierB Co. |
+| Supplier     | `20`     | SupplierA Inc.   |
+| Supplier     | `21`     | SupplierB Co.    |
 
 ### Demo Scenarios
 
