@@ -191,7 +191,7 @@ class Queries:
         """
         
         # Execute with parameters
-        params = current_ids * 6  # Used 6 times in the query
+        params = current_ids * 7  # Used 7 times in the query
         conflicts = self.db.execute(conflict_query, params)
         
         print("\nIngredients that CANNOT be included (conflicts):")
